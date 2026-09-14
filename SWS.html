@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SWS web console</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            background-color: #2d2d2d;
+            padding: 12px 16px;
+            border-bottom: 1px solid #404040;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4fc3f7;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            padding: 8px 16px;
+            background-color: #0d47a1;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: #1565c0;
+        }
+
+        button:disabled {
+            background-color: #424242;
+            cursor: not-allowed;
+        }
+
+        button.danger {
+            background-color: #c62828;
+        }
+
+        button.danger:hover {
+            background-color: #d32f2f;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 60px);
+            gap: 0;
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #404040;
+        }
+
+        .classes-panel {
+            width: 200px;
+            background-color: #252525;
+        }
+
+        .classes-header {
+            padding: 12px 16px;
+            background-color: #2d2d2d;
+            border-bottom: 1px solid #404040;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #999;
+            font-weight: bold;
+        }
+
+        .classes-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
+
+        .class-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .class-item:hover {
+            background-color: #333;
+        }
+
+        .class-item.selected {
+            background-color: #1565c0;
+            border-left-color: #4fc3f7;
+        }
+
+        .class-color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #4fc3f7;
+        }
+
+        .class-color-dot.main {
+            background-color: #999;
+        }
+
+        .editor-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #1e1e1e;
+        }
+
+        .editor-header {
+            padding: 12px 16px;
+            background-color: #2d2d2d;
+            border-bottom: 1px solid #404040;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #999;
+            font-weight: bold;
+        }
+
+        .editor-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .line-numbers {
+            width: 50px;
+            background-color: #252525;
+            border-right: 1px solid #404040;
+            padding: 8px 8px;
+            text-align: right;
+            color: #666;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .editor {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        textarea {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            border: none;
+            padding: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+            z-index: 2;
+        }
+
+        .highlight-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 1;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .highlight-line {
+            background-color: rgba(79, 195, 247, 0.1);
+        }
+
+        .highlight-line.current {
+            background-color: rgba(255, 193, 7, 0.3);
+            border-left: 3px solid #ffc107;
+        }
+
+        .console-panel {
+            height: 150px;
+            background-color: #252525;
+            border-top: 1px solid #404040;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .console-header {
+            padding: 8px 16px;
+            background-color: #2d2d2d;
+            border-bottom: 1px solid #404040;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #999;
+            font-weight: bold;
+        }
+
+        .console-output {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .console-line {
+            margin: 2px 0;
+            padding: 2px 4px;
+        }
+
+        .console-line.info {
+            color: #4fc3f7;
+        }
+
+        .console-line.success {
+            color: #81c784;
+        }
+
+        .console-line.error {
+            color: #ef5350;
+        }
+
+        .console-line.warning {
+            color: #ffb74d;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .classes-panel {
+                width: 100%;
+                height: 120px;
+                border-right: none;
+                border-bottom: 1px solid #404040;
+            }
+
+            .classes-list {
+                display: flex;
+                flex-direction: row;
+                overflow-x: auto;
+                padding: 0 8px;
+            }
+
+            .class-item {
+                min-width: max-content;
+                padding: 8px 12px;
+            }
+
+            .editor-panel {
+                flex: 1;
+            }
+
+            .console-panel {
+                height: 100px;
+            }
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #424242;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #505050;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="header-title">SWS web console v0.1</div>
+        <div class="header-buttons">
+            <button id="openBtn">📂 開く</button>
+            <button id="saveBtn">💾 保存</button>
+            <button id="playBtn">▶ Play</button>
+            <button id="stopBtn" class="danger" disabled>⏹ Stop</button>
+        </div>
+    </header>
+
+    <!-- File Input -->
+    <input type="file" id="fileInput" accept=".ss,.ust">
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Classes Panel -->
+        <div class="classes-panel panel">
+            <div class="classes-header">Classes</div>
+            <div class="classes-list" id="classList"></div>
+        </div>
+
+        <!-- Editor Panel -->
+        <div class="editor-panel panel">
+            <div class="editor-header">SWS Code Editor</div>
+            <div class="editor-container">
+                <div class="line-numbers" id="lineNumbers"></div>
+                <div class="editor">
+                    <textarea id="codeEditor" placeholder="SWSコードをここに入力してください..."></textarea>
+                    <div class="highlight-layer" id="highlightLayer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Console Panel -->
+    <div class="console-panel">
+        <div class="console-header">Console</div>
+        <div class="console-output" id="consoleOutput"></div>
+    </div>
+
+    <!-- Core Scripts -->
+    <script src="sws-core.js"></script>
+    <script src="ui-controller.js"></script>
+</body>
+</html>
